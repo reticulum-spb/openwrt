@@ -1,0 +1,16 @@
+Pass the OpenWrt backports flag to the compiler.
+
+Translate CONFIG_XRADIO_MAC80211_BACKPORTS=y into the define used by patch 001.
+Add -Wno-error to the module flags so existing driver warnings do not
+stop the build.
+
+--- a/Makefile
++++ b/Makefile
+@@ -1,4 +1,7 @@
+ CONFIG_XRADIO := m
++
++# CONFIG_XRADIO_MAC80211_BACKPORTS is passed by the OpenWrt package build.
++ccflags-$(CONFIG_XRADIO_MAC80211_BACKPORTS) += -DXRADIO_MAC80211_BACKPORTS -Wno-error
+ 
+ xradio_wlan-y := \
+ 	fwio.o \

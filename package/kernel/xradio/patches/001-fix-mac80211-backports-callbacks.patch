@@ -1,0 +1,46 @@
+Use the radio_idx callback argument with OpenWrt's mac80211 backports.
+
+The backports use the 6.18 wireless API on a 6.12 kernel, so kernel
+version checks alone select the wrong signatures. Also check the
+XRADIO_MAC80211_BACKPORTS flag supplied by the package build.
+
+--- a/sta.h
++++ b/sta.h
+@@ -43,7 +43,7 @@
+                             enum nl80211_iftype new_type,
+                             bool p2p);
+ int xradio_config(struct ieee80211_hw *dev,
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)) || defined(XRADIO_MAC80211_BACKPORTS)
+ 		  int radio_idx,
+ #endif
+ 		  u32 changed);
+@@ -70,7 +70,7 @@
+ 			struct ieee80211_tx_queue_stats *stats);
+ */
+ int xradio_set_rts_threshold(struct ieee80211_hw *hw,
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)) || defined(XRADIO_MAC80211_BACKPORTS)
+ 			     int radio_idx,
+ #endif
+ 			     u32 value);
+--- a/sta.c
++++ b/sta.c
+@@ -382,7 +382,7 @@
+ }
+ 
+ int xradio_config(struct ieee80211_hw *dev,
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)) || defined(XRADIO_MAC80211_BACKPORTS)
+ 		  int radio_idx,
+ #endif
+ 		  u32 changed)
+@@ -801,7 +801,7 @@
+ }
+ 
+ int xradio_set_rts_threshold(struct ieee80211_hw *hw,
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)) || defined(XRADIO_MAC80211_BACKPORTS)
+ 			     int radio_idx,
+ #endif
+ 			     u32 value)
