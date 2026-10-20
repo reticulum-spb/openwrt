@@ -1,0 +1,100 @@
+Orange Pi Zero: describe XR819 Wi-Fi and optional audio and SPI devices.
+
+Add the XR819 compatible and PG10 host-wake interrupt for the out-of-tree
+xradio driver, following Armbian's device-tree patch.
+
+Add audio routing, a userspace SPI1 device and stable SPI bus aliases.
+Keep the audio codec and SPI1 disabled by default.
+
+Use the downstream "allwinner,spi-dev" compatible for userspace SPI
+access and add matching entries to the spidev driver. This follows
+Armbian's approach without borrowing an unrelated chip's identity.
+The compatible is a local convention, not an official Allwinner binding.
+
+Armbian XR819 reference:
+https://github.com/armbian/build/blob/main/patch/kernel/archive/sunxi-6.12/patches.armbian/arm-dts-sun8i-h2-plus-orangepi-zero-fix-xradio-interrupt.patch
+
+Armbian spidev reference:
+https://github.com/armbian/build/blob/main/patch/kernel/archive/sunxi-6.12/patches.armbian/drv-spi-spidev-Add-armbian-spi-dev-compatible.patch
+
+--- a/arch/arm/boot/dts/allwinner/sun8i-h2-plus-orangepi-zero.dts
++++ b/arch/arm/boot/dts/allwinner/sun8i-h2-plus-orangepi-zero.dts
+@@ -49,6 +49,7 @@
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
+ 
+ / {
+ 	model = "Xunlong Orange Pi Zero";
+@@ -59,6 +60,8 @@
+ 		/* ethernet0 is the H3 emac, defined in sun8i-h3.dtsi */
+ 		ethernet0 = &emac;
+ 		ethernet1 = &xr819;
++		spi0 = &spi0;
++		spi1 = &spi1;
+ 	};
+ 
+ 	chosen {
+@@ -116,6 +119,15 @@
+ 	cpu-supply = <&reg_vdd_cpux>;
+ };
+ 
++&codec {
++	status = "disabled";
++
++	allwinner,audio-routing =
++		"Speaker", "LINEOUT",
++		"MIC1", "Mic",
++		"Mic", "MBIAS";
++};
++
+ &ehci0 {
+ 	status = "okay";
+ };
+@@ -151,6 +163,10 @@
+ 	 */
+ 	xr819: wifi@1 {
+ 		reg = <1>;
++		compatible = "xradio,xr819";
++		interrupt-parent = <&pio>;
++		interrupts = <6 10 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "host-wake";
+ 	};
+ };
+ 
+@@ -175,6 +191,16 @@
+ 	};
+ };
+ 
++&spi1 {
++	status = "disabled";
++
++	spidev@0 {
++		compatible = "allwinner,spi-dev";
++		reg = <0>;
++		spi-max-frequency = <10000000>;
++	};
++};
++
+ &uart0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0_pa_pins>;
+--- a/drivers/spi/spidev.c
++++ b/drivers/spi/spidev.c
+@@ -689,6 +689,7 @@
+ 	{ .name = "bk4" },
+ 	{ .name = "dhcom-board" },
+ 	{ .name = "m53cpld" },
++	{ .name = "spi-dev" },
+ 	{ .name = "spi-petra" },
+ 	{ .name = "spi-authenta" },
+ 	{ .name = "em3581" },
+@@ -711,6 +712,7 @@
+ }
+ 
+ static const struct of_device_id spidev_dt_ids[] = {
++	{ .compatible = "allwinner,spi-dev", .data = &spidev_of_check },
+ 	{ .compatible = "cisco,spi-petra", .data = &spidev_of_check },
+ 	{ .compatible = "dh,dhcom-board", .data = &spidev_of_check },
+ 	{ .compatible = "elgin,jg10309-01", .data = &spidev_of_check },
