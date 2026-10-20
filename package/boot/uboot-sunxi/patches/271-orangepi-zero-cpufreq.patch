@@ -1,0 +1,26 @@
+sunxi: orangepi-zero: use a conservative boot CPU clock
+
+Set the SPL/U-Boot CPU clock to 480 MHz rather than the H3/H2+ default of
+1008 MHz. Follow Armbian's setting to favor boot stability.
+
+Sometimes boot failures with higher boot CPU clocks have been reported on
+Orange Pi Zero even when higher clocks work after Linux starts.
+
+The report does not establish the hardware cause or prove the same limit
+for every board:
+https://forum.armbian.com/topic/15955-issues-building-working-u-boot-for-speeds-above-480mhz-opi-zero/
+
+Armbian reference:
+https://github.com/armbian/build/blob/main/patch/u-boot/u-boot-sunxi/board_orangepizero/adjust-small-boards-cpufreq.patch
+
+diff --git a/configs/orangepi_zero_defconfig b/configs/orangepi_zero_defconfig
+--- a/configs/orangepi_zero_defconfig
++++ b/configs/orangepi_zero_defconfig
+@@ -9,6 +9,7 @@ CONFIG_DRAM_ODT_EN=y
+ # CONFIG_VIDEO_DE2 is not set
+ CONFIG_SPL_SPI_SUNXI=y
+ # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++CONFIG_SYS_CLK_FREQ=480000000
+ CONFIG_CONSOLE_MUX=y
+ CONFIG_MTD=y
+ CONFIG_SPI_FLASH_MACRONIX=y
