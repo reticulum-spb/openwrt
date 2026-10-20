@@ -1,0 +1,16 @@
+Orange Pi Zero: declare H3 compatibility.
+
+Add the H3 compatible alongside H2+ for the shared device tree used on
+both variants of the board.
+
+--- a/arch/arm/boot/dts/allwinner/sun8i-h2-plus-orangepi-zero.dts
++++ b/arch/arm/boot/dts/allwinner/sun8i-h2-plus-orangepi-zero.dts
+@@ -52,7 +52,7 @@
+ 
+ / {
+ 	model = "Xunlong Orange Pi Zero";
+-	compatible = "xunlong,orangepi-zero", "allwinner,sun8i-h2-plus";
++	compatible = "xunlong,orangepi-zero", "allwinner,sun8i-h2-plus", "allwinner,sun8i-h3";
+ 
+ 	aliases {
+ 		serial0 = &uart0;
