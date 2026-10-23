@@ -217,6 +217,7 @@ define U-Boot/orangepi_zero
   BUILD_SUBTARGET:=cortexa7
   NAME:=Orange Pi Zero
   BUILD_DEVICES:=xunlong_orangepi-zero
+  UENV:=ab
 endef
 
 define U-Boot/orangepi_one

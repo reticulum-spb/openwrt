@@ -807,9 +807,11 @@ config BUSYBOX_DEFAULT_FEATURE_SPLIT_FANCY
 	default n
 config BUSYBOX_DEFAULT_STAT
 	bool
+	default y if TARGET_sunxi
 	default n
 config BUSYBOX_DEFAULT_FEATURE_STAT_FORMAT
 	bool
+	default y if TARGET_sunxi
 	default n
 config BUSYBOX_DEFAULT_FEATURE_STAT_FILESYSTEM
 	bool
@@ -1528,6 +1530,7 @@ config BUSYBOX_DEFAULT_FEATURE_BLKID_TYPE
 	default n
 config BUSYBOX_DEFAULT_BLOCKDEV
 	bool
+	default y if TARGET_sunxi
 	default n
 config BUSYBOX_DEFAULT_CAL
 	bool

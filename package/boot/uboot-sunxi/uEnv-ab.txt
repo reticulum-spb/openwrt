@@ -1,0 +1,122 @@
+# A/B boot script for Orange Pi Zero.
+# The files are FIT images; uImage_a/uImage_b are stable FAT filenames.
+
+if test "${ab_env_seeded}" != "1"; then
+    setenv ab_env_seeded 1
+    if ! saveenv; then
+        echo "Unable to persist initial A/B environment"
+        reset
+    fi
+fi
+
+if test "${ab_state}" = "pending_a"; then
+    setenv ab_state trial_a
+    setenv upgrade_available 1
+    setenv bootcount 0
+    if ! saveenv; then
+        echo "Unable to persist A/B trial state"
+        reset
+    fi
+elif test "${ab_state}" = "pending_b"; then
+    setenv ab_state trial_b
+    setenv upgrade_available 1
+    setenv bootcount 0
+    if ! saveenv; then
+        echo "Unable to persist A/B trial state"
+        reset
+    fi
+fi
+
+if test "${ab_state}" = "stable_a" || test "${ab_state}" = "stable_b"; then
+    if test "${upgrade_available}" = "1"; then
+        setenv upgrade_available 0
+        setenv bootcount 0
+        if ! saveenv; then
+            echo "Unable to persist stable A/B state"
+            hang
+        fi
+    fi
+fi
+
+if test "${ab_state}" = "trial_a"; then
+    setenv ab_slot a
+    setenv ab_other b
+elif test "${ab_state}" = "trial_b"; then
+    setenv ab_slot b
+    setenv ab_other a
+elif test "${ab_state}" = "stable_b"; then
+    setenv ab_slot b
+    setenv ab_other a
+else
+    setenv ab_state stable_a
+    setenv ab_slot a
+    setenv ab_other b
+fi
+
+# Count every boot until Linux confirms it. Do not reset an active trial.
+if test "${ab_state}" = "trial_a" || test "${ab_state}" = "trial_b"; then
+    if test "${upgrade_available}" != "1"; then
+        setenv upgrade_available 1
+        setenv bootcount 0
+        if ! saveenv; then
+            echo "Unable to persist A/B boot attempt"
+            hang
+        fi
+    fi
+fi
+if test "${ab_state}" = "pending_a" || test "${ab_state}" = "pending_b"; then
+    setenv upgrade_available 1
+    setenv bootcount 0
+    if ! saveenv; then
+        echo "Unable to persist A/B boot attempt"
+        hang
+    fi
+fi
+
+setenv ab_rootpart 2
+setenv ab_kernfile uImage_a
+if test "${ab_slot}" = "b"; then
+    setenv ab_rootpart 3
+    setenv ab_kernfile uImage_b
+fi
+
+setenv ab_loadslot 'if fatload mmc ${mmc_bootdev} ${kernel_addr_r} ${ab_kernfile}; then if part uuid mmc ${mmc_bootdev}:${ab_rootpart} ab_uuid; then setenv bootargs console=${console} earlyprintk root=PARTUUID=${ab_uuid} ab.slot=${ab_slot} ab.rootpart=${ab_rootpart} rstate=${ab_state} rootwait; echo "A/B: booting slot ${ab_slot}, root partition ${ab_rootpart}, kernel ${ab_kernfile}"; bootm ${kernel_addr_r}; fi; fi'
+setenv ab_rescue_boot 'if test "${ab_state}" = "stable_a"; then setenv ab_rootpart 3; setenv ab_kernfile uImage_b; setenv ab_rescue_slot b; setenv ab_rescue_state stable_b; else setenv ab_rootpart 2; setenv ab_kernfile uImage_a; setenv ab_rescue_slot a; setenv ab_rescue_state stable_a; fi; if fatload mmc ${mmc_bootdev} ${kernel_addr_r} ${ab_kernfile}; then if part uuid mmc ${mmc_bootdev}:${ab_rootpart} ab_uuid; then setenv bootargs console=${console} earlyprintk root=PARTUUID=${ab_uuid} ab.slot=${ab_rescue_slot} ab.rootpart=${ab_rootpart} rstate=${ab_rescue_state} ab.rescue=1 ro rootwait; echo "A/B: rescue slot ${ab_rescue_slot}, root partition ${ab_rootpart}, kernel ${ab_kernfile}"; bootm ${kernel_addr_r}; fi; fi; hang'
+run ab_loadslot
+
+# A failed trial is rolled back without requiring Linux.
+if test "${ab_state}" = "trial_a" || test "${ab_state}" = "trial_b"; then
+    if test "${ab_other}" = "a"; then
+        setenv ab_state stable_a
+    else
+        setenv ab_state stable_b
+    fi
+    setenv upgrade_available 0
+    setenv bootcount 0
+    if ! saveenv; then
+        echo "Unable to persist A/B rollback state"
+        hang
+    fi
+    reset
+fi
+
+# A stable boot may try the other slot once, but never persists that choice.
+if test "${ab_slot}" = "a"; then
+    setenv ab_rootpart 3
+    setenv ab_kernfile uImage_b
+    setenv ab_rescue_slot b
+    setenv ab_rescue_state stable_b
+else
+    setenv ab_rootpart 2
+    setenv ab_kernfile uImage_a
+    setenv ab_rescue_slot a
+    setenv ab_rescue_state stable_a
+fi
+if fatload mmc ${mmc_bootdev} ${kernel_addr_r} ${ab_kernfile}; then
+    if part uuid mmc ${mmc_bootdev}:${ab_rootpart} ab_uuid; then
+        setenv bootargs console=${console} earlyprintk root=PARTUUID=${ab_uuid} ab.slot=${ab_rescue_slot} ab.rootpart=${ab_rootpart} rstate=${ab_rescue_state} ab.rescue=1 ro rootwait
+        echo "A/B: rescue slot ${ab_rescue_slot}, root partition ${ab_rootpart}, kernel ${ab_kernfile}"
+        bootm ${kernel_addr_r}
+    fi
+fi
+reset

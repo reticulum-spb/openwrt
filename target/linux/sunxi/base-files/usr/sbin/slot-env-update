@@ -1,0 +1,58 @@
+#!/bin/sh
+
+set -eu
+
+usage() {
+	echo "Usage: $0 {stage|mark-good} <a|b>" >&2
+	exit 2
+}
+
+[ "$#" -eq 2 ] || usage
+action="$1"
+slot="$2"
+
+case "$action:$slot" in
+	stage:a|stage:b|mark-good:a|mark-good:b) ;;
+	*) usage ;;
+esac
+
+lock=/var/lock/slot-env-update.lock
+mkdir "$lock" 2>/dev/null || {
+	echo "Unable to acquire A/B environment lock" >&2
+	exit 1
+}
+
+trap 'rmdir "$lock"' EXIT
+trap 'exit 1' HUP INT TERM
+
+mark_good=0
+
+state="$(fw_printenv -n ab_state 2>/dev/null || true)"
+case "$action:$state:$slot" in
+	stage:stable_a:b|stage:stable_b:a)
+		next="pending_$slot"
+		;;
+	mark-good:trial_a:a|mark-good:trial_b:b|mark-good:stable_a:a|mark-good:stable_b:b)
+		next="stable_$slot"
+		mark_good=1
+		;;
+	*)
+		echo "Invalid A/B state transition" >&2
+		exit 1
+		;;
+esac
+
+script="$(mktemp /tmp/slot-env.XXXXXX)"
+trap 'rm -f "$script"; rmdir "$lock" 2>/dev/null || true' EXIT
+
+if [ "${mark_good:-0}" = 1 ]; then
+	{
+		printf 'ab_state=%s\n' "$next"
+		printf 'upgrade_available=0\n'
+		printf 'bootcount=0\n'
+	} >"$script"
+else
+	printf 'ab_state=%s\n' "$next" >"$script"
+fi
+
+fw_setenv --script "$script"

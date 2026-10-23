@@ -26,6 +26,28 @@ define Build/sunxi-sdcard
 	rm -f $@.boot
 endef
 
+define Build/sunxi-sdcard-ab
+	rm -f $@.boot
+	mkfs.fat $@.boot -C $(FAT32_BLOCKS)
+	mcopy -i $@.boot $(STAGING_DIR_IMAGE)/$(DEVICE_NAME)-boot.scr ::boot.scr
+	mcopy -i $@.boot $(IMAGE_KERNEL) ::uImage_a
+	mcopy -i $@.boot $(IMAGE_KERNEL) ::uImage_b
+	./gen_sunxi_sdcard_img.sh $@ $@.boot $(IMAGE_ROOTFS) \
+		$(CONFIG_SUNXI_SD_BOOT_PARTSIZE) $(CONFIG_TARGET_ROOTFS_PARTSIZE) \
+		$(STAGING_DIR_IMAGE)/$(DEVICE_NAME)-u-boot-with-spl.bin ab
+	rm -f $@.boot
+endef
+
+define Build/sunxi-sysupgrade-ab
+	cp $(IMAGE_KERNEL) $@.kernel
+	cp $(IMAGE_ROOTFS) $@.rootfs
+	cat $@.kernel >> $@
+	$(call Image/pad-to,$@,4096)
+	cat $@.rootfs >> $@
+	rm -f $@.kernel $@.rootfs
+	$(call Build/append-metadata)
+endef
+
 # why \x00\x00\x00\x00 for zImage-initramfs
 define Device/Default
   PROFILES := Default

@@ -303,6 +303,9 @@ define Device/xunlong_orangepi-zero
   DEVICE_MODEL := Orange Pi Zero
   DEVICE_PACKAGES:=kmod-rtc-sunxi kmod-xradio xradio-firmware
   SOC := sun8i-h2-plus
+  IMAGES := sdcard.img.gz sysupgrade.bin
+  IMAGE/sdcard.img.gz := sunxi-sdcard-ab | append-metadata | gzip
+  IMAGE/sysupgrade.bin := sunxi-sysupgrade-ab
 endef
 TARGET_DEVICES += xunlong_orangepi-zero
 
