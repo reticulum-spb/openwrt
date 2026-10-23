@@ -3,7 +3,9 @@
 
 if test "${ab_env_seeded}" != "1"; then
     setenv ab_env_seeded 1
-    if ! saveenv; then
+    if saveenv; then
+        true
+    else
         echo "Unable to persist initial A/B environment"
         reset
     fi
@@ -13,7 +15,9 @@ if test "${ab_state}" = "pending_a"; then
     setenv ab_state trial_a
     setenv upgrade_available 1
     setenv bootcount 0
-    if ! saveenv; then
+    if saveenv; then
+        true
+    else
         echo "Unable to persist A/B trial state"
         reset
     fi
@@ -21,7 +25,9 @@ elif test "${ab_state}" = "pending_b"; then
     setenv ab_state trial_b
     setenv upgrade_available 1
     setenv bootcount 0
-    if ! saveenv; then
+    if saveenv; then
+        true
+    else
         echo "Unable to persist A/B trial state"
         reset
     fi
@@ -31,7 +37,9 @@ if test "${ab_state}" = "stable_a" || test "${ab_state}" = "stable_b"; then
     if test "${upgrade_available}" = "1"; then
         setenv upgrade_available 0
         setenv bootcount 0
-        if ! saveenv; then
+        if saveenv; then
+            true
+        else
             echo "Unable to persist stable A/B state"
             hang
         fi
@@ -58,7 +66,9 @@ if test "${ab_state}" = "trial_a" || test "${ab_state}" = "trial_b"; then
     if test "${upgrade_available}" != "1"; then
         setenv upgrade_available 1
         setenv bootcount 0
-        if ! saveenv; then
+        if saveenv; then
+            true
+        else
             echo "Unable to persist A/B boot attempt"
             hang
         fi
@@ -67,7 +77,9 @@ fi
 if test "${ab_state}" = "pending_a" || test "${ab_state}" = "pending_b"; then
     setenv upgrade_available 1
     setenv bootcount 0
-    if ! saveenv; then
+    if saveenv; then
+        true
+    else
         echo "Unable to persist A/B boot attempt"
         hang
     fi
@@ -93,7 +105,9 @@ if test "${ab_state}" = "trial_a" || test "${ab_state}" = "trial_b"; then
     fi
     setenv upgrade_available 0
     setenv bootcount 0
-    if ! saveenv; then
+    if saveenv; then
+        true
+    else
         echo "Unable to persist A/B rollback state"
         hang
     fi

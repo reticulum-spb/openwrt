@@ -1,0 +1,28 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+boot() {
+	local state slot part
+
+	. /lib/functions.sh
+
+	[ "$(cmdline_get_var ab.rescue)" != 1 ] || return 0
+	[ "$(fw_printenv -n ab_env_seeded 2>/dev/null)" = 1 ] || return 0
+
+	state="$(fw_printenv -n ab_state 2>/dev/null)"
+	case "$state" in
+		trial_a) slot=a; part=2 ;;
+		trial_b) slot=b; part=3 ;;
+		*) return 0 ;;
+	esac
+
+	[ "$(cmdline_get_var ab.slot)" = "$slot" ] &&
+		[ "$(cmdline_get_var ab.rootpart)" = "$part" ] || {
+		logger -t slot-state "A/B boot slot does not match $state"
+		return 1
+	}
+
+	/usr/sbin/slot-env-update mark-good "$slot" || return 1
+	logger -t slot-state "A/B slot $slot marked good"
+}
